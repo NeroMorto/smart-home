@@ -1,0 +1,51 @@
+repos:
+  #  - repo: meta
+  #    hooks:
+  #      - id: identity
+  - repo: https://github.com/FeryET/pre-commit-rust
+    rev: v1.2.1
+    hooks:
+      - id: fmt
+        name: fmt
+        description: Format files with cargo fmt.
+        entry: cargo fmt
+        language: system
+        types: [ rust ]
+        files: '(.rs|Cargo.toml)$'
+        args: [ '--', '--check' ]
+        stages:
+          - pre-commit
+          - pre-merge-commit
+          - manual
+        pass_filenames: false
+      - id: clippy
+        name: clippy
+        description: Lint rust sources
+        entry: cargo clippy
+        language: system
+        args: [ '--all-targets', '--', '-D', 'warnings' ]
+        types: [ file ]
+        files: ^.*(Cargo\.toml|Cargo\.lock|.*\.rs)$
+        pass_filenames: false
+        stages:
+          - pre-commit
+          - pre-merge-commit
+          - pre-push
+          - manual
+      - id: test
+        name: test
+        description: Run tests with cargo test
+        entry: cargo test
+        language: system
+        types: [ rust ]
+        args: [ "--" ]
+        stages:
+          - pre-push
+          - pre-merge-commit
+          - manual
+          - pre-commit
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
