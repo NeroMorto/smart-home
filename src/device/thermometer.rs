@@ -1,5 +1,6 @@
+#[derive(Debug)]
 pub struct Thermometer {
-    temperature: f32,
+    pub temperature: f32,
 }
 
 impl Thermometer {
@@ -13,11 +14,11 @@ impl Thermometer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::device::Thermometer;
 
     #[test]
-    fn test_thermometer() {
-        let thermometer = Thermometer::new(22.);
-        assert_eq!(thermometer.get_temperature(), 22.);
+    fn test_get_temperature() {
+        let thermometer = Thermometer::new(50.);
+        assert_eq!(thermometer.get_temperature(), 50.);
     }
 }

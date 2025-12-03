@@ -1,36 +1,62 @@
-pub mod electrical_socket;
-pub mod thermometer;
-pub use electrical_socket::{ElectricalSocket, ElectricalSocketState};
+mod electrical_socket;
+mod thermometer;
+
+use crate::reportable_trait::Reportable;
+pub use electrical_socket::ElectricalSocket;
 pub use thermometer::Thermometer;
 
+#[derive(Debug)]
 pub enum Device {
     Thermometer(Thermometer),
     ElectricalSocket(ElectricalSocket),
 }
 
-impl Device {
-    pub fn report(&self) {
+impl Reportable for Device {
+    fn report(&self) {
         match self {
             Device::Thermometer(t) => {
-                println!("Temperature: {}", t.get_temperature());
+                println!("Thermometer device: temperature = {}", t.temperature);
             }
             Device::ElectricalSocket(s) => {
-                println!("State: {}. Power: {}", s.get_state(), s.get_power());
+                println!(
+                    "Electrical socket device: state = {}, power = {}",
+                    s.state, s.power
+                );
             }
         }
+    }
+}
+
+impl From<Thermometer> for Device {
+    fn from(thermometer: Thermometer) -> Self {
+        Self::Thermometer(thermometer)
+    }
+}
+
+impl From<ElectricalSocket> for Device {
+    fn from(electric_socket: ElectricalSocket) -> Self {
+        Self::ElectricalSocket(electric_socket)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn test_into_device() {
+        let _ = Device::from(Thermometer::new(32.));
+        let _ = Device::from(ElectricalSocket::new(0., false.into()));
+    }
 
     #[test]
     fn test_report() {
-        let socket =
-            Device::ElectricalSocket(ElectricalSocket::new(220., ElectricalSocketState::On));
-        socket.report();
-        let thermometer = Device::Thermometer(Thermometer::new(22.));
-        thermometer.report();
+        let thermometer = Thermometer::new(32.);
+        let electrical_socket = ElectricalSocket::new(0., false.into());
+
+        let thermometer_device: Device = thermometer.into();
+        thermometer_device.report();
+
+        let electrical_socket_device: Device = electrical_socket.into();
+        electrical_socket_device.report();
     }
 }
