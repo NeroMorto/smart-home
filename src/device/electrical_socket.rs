@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub enum ElectricalSocketState {
     On,
     Off,
@@ -22,10 +22,10 @@ impl From<bool> for ElectricalSocketState {
         }
     }
 }
-
+#[derive(Debug)]
 pub struct ElectricalSocket {
-    state: ElectricalSocketState,
-    power: f32,
+    pub state: ElectricalSocketState,
+    pub power: f32,
 }
 
 impl ElectricalSocket {
@@ -56,30 +56,48 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_electrical_socket() {
-        let mut socket = ElectricalSocket::new(1.0, ElectricalSocketState::Off);
-        assert!(matches!(socket.get_state(), ElectricalSocketState::Off));
-        assert_eq!(socket.get_power(), 0.0);
-        socket.toggle();
-        assert!(matches!(socket.get_state(), ElectricalSocketState::On));
-        assert_eq!(socket.get_power(), 1.);
-        socket.toggle();
-        assert!(matches!(socket.get_state(), ElectricalSocketState::Off));
-        assert_eq!(socket.get_power(), 0.0);
+    fn test_get_state() {
+        assert!(matches!(
+            ElectricalSocket::new(1.0, ElectricalSocketState::Off).get_state(),
+            ElectricalSocketState::Off
+        ));
+        assert!(matches!(
+            ElectricalSocket::new(1.0, ElectricalSocketState::On).get_state(),
+            ElectricalSocketState::On
+        ));
     }
 
     #[test]
-    fn test_state_from_bool() {
-        assert_eq!(ElectricalSocketState::from(true), ElectricalSocketState::On);
+    fn test_get_power() {
         assert_eq!(
-            ElectricalSocketState::from(false),
-            ElectricalSocketState::Off
+            ElectricalSocket::new(220.0, ElectricalSocketState::Off).get_power(),
+            0.
+        );
+        assert_eq!(
+            ElectricalSocket::new(220.0, ElectricalSocketState::On).get_power(),
+            220.
         );
     }
+    #[test]
+    fn test_toggle() {
+        let mut socket = ElectricalSocket::new(220.0, ElectricalSocketState::Off);
+        assert!(matches!(socket.get_state(), ElectricalSocketState::Off));
+        assert_eq!(socket.get_power(), 0.);
+
+        socket.toggle();
+
+        assert!(matches!(socket.get_state(), ElectricalSocketState::On));
+        assert_eq!(socket.get_power(), 220.);
+
+        socket.toggle();
+
+        assert!(matches!(socket.get_state(), ElectricalSocketState::Off));
+        assert_eq!(socket.get_power(), 0.);
+    }
 
     #[test]
-    fn test_state_display() {
-        assert_eq!(format!("{}", ElectricalSocketState::On), "On");
-        assert_eq!(format!("{}", ElectricalSocketState::Off), "Off");
+    fn test_display_state() {
+        assert_eq!(ElectricalSocketState::Off.to_string(), "Off");
+        assert_eq!(ElectricalSocketState::On.to_string(), "On");
     }
 }

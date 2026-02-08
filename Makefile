@@ -16,3 +16,7 @@ lint:
 ## format: Format source code
 format:
 	cargo fmt --all
+
+## run: Run app example
+run:
+	cargo run example_app --release

@@ -1,123 +1,159 @@
+use crate::SmartHomeError;
 use crate::device::Device;
-type Devices = [Device; 2];
+use crate::reportable_trait::Reportable;
+use std::collections::HashMap;
+
+#[derive(Debug)]
 pub struct Room {
-    devices: Devices,
+    devices: HashMap<String, Device>,
+}
+
+impl Reportable for Room {
+    fn report(&self) {
+        println!("Room: devices count = {}", self.devices.len());
+        self.devices.iter().for_each(|(_, device)| device.report());
+    }
 }
 
 impl Room {
-    pub fn new(devices: Devices) -> Self {
-        Self { devices }
-    }
-
-    pub fn get_device(&self, index: usize) -> &Device {
-        self.check_device_index_bounds(index);
-        &self.devices[index]
-    }
-
-    pub fn get_device_mut(&mut self, index: usize) -> &mut Device {
-        self.check_device_index_bounds(index);
-        &mut self.devices[index]
-    }
-
-    pub fn report(&self) {
-        println!("Room report");
-        self.devices.iter().for_each(|d| d.report());
-    }
-
-    fn check_device_index_bounds(&self, device_index: usize) {
-        let bounds = self.devices.len();
-        if device_index >= bounds {
-            panic!("Device index `{device_index}` out of bounds `{bounds}`",);
+    pub fn new(devices: Vec<(&str, Device)>) -> Self {
+        Self {
+            devices: HashMap::from_iter(
+                devices
+                    .into_iter()
+                    .map(|(device_name, device)| (device_name.to_string(), device)),
+            ),
         }
+    }
+
+    pub fn add_device(&mut self, device_name: &str, device: Device) -> Result<(), SmartHomeError> {
+        if self.devices.contains_key(device_name) {
+            return Err(SmartHomeError::DeviceAlreadyExists(device_name.into()));
+        }
+        self.devices.insert(device_name.into(), device);
+        Ok(())
+    }
+
+    pub fn get_device(&self, device_name: &str) -> Option<&Device> {
+        self.devices.get(device_name)
+    }
+
+    pub fn get_device_mut(&mut self, device_name: &str) -> Option<&mut Device> {
+        self.devices.get_mut(device_name)
+    }
+
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), SmartHomeError> {
+        if self.devices.remove(device_name).is_none() {
+            return Err(SmartHomeError::DeviceNotFound(device_name.into()));
+        };
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ElectricalSocket, ElectricalSocketState, Thermometer};
+    use crate::device::{ElectricalSocket, Thermometer};
 
     #[test]
-    fn test_room() {
-        let room = Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
+    fn test_add_device() {
+        let mut room = Room::new(vec![]);
+        assert_eq!(room.devices.len(), 0);
+        let _ = room.add_device("DeviceName", ElectricalSocket::new(0., false.into()).into());
+        assert_eq!(room.devices.len(), 1);
+    }
+    #[test]
+    fn test_add_device_which_already_exists() {
+        let mut room = Room::new(vec![
+            (
+                "Unused socket",
+                ElectricalSocket::new(0., false.into()).into(),
+            ),
+            ("Unused thermometer", Thermometer::new(0.).into()),
         ]);
         assert_eq!(room.devices.len(), 2);
+        let res = room.add_device("Unused socket", Thermometer::new(0.).into());
+        assert_eq!(room.devices.len(), 2);
+        match res.err().unwrap() {
+            SmartHomeError::DeviceAlreadyExists(device_name) => {
+                assert_eq!(device_name, "Unused socket");
+            }
+            _ => unreachable!("Unexpected error variant"),
+        }
+    }
+
+    #[test]
+    fn test_remove_device() {
+        let mut room = Room::new(vec![(
+            "Unused socket",
+            ElectricalSocket::new(0., false.into()).into(),
+        )]);
+        assert_eq!(room.devices.len(), 1);
+        let _ = room.remove_device("Unused socket");
+        assert_eq!(room.devices.len(), 0);
+    }
+
+    #[test]
+    fn test_remove_device_which_not_exists() {
+        let mut room = Room::new(vec![]);
+        assert_eq!(room.devices.len(), 0);
+        let _ = room.remove_device("Unused socket");
+        let res = room.remove_device("Unused socket");
+        match res.err().unwrap() {
+            SmartHomeError::DeviceNotFound(device_name) => {
+                assert_eq!(device_name, "Unused socket");
+            }
+            _ => unreachable!("Unexpected error variant"),
+        }
     }
 
     #[test]
     fn test_get_device() {
-        let room = Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ]);
-        if let Device::ElectricalSocket(socket) = room.get_device(0) {
-            assert_eq!(socket.get_power(), 120.);
-            assert!(matches!(socket.get_state(), ElectricalSocketState::On));
-            return;
+        let room = Room::new(vec![(
+            "Unused socket",
+            ElectricalSocket::new(220., true.into()).into(),
+        )]);
+        if let Device::ElectricalSocket(socket) = room.get_device("Unused socket").unwrap() {
+            assert_eq!(socket.get_power(), 220.0);
+        } else {
+            unreachable!();
         }
-        unreachable!()
     }
 
     #[test]
-    #[should_panic(expected = "Device index `2` out of bounds `2`")]
     fn test_get_missing_device() {
-        Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ])
-        .get_device(2);
+        let room = Room::new(vec![]);
+        assert!(room.get_device("Missing device").is_none());
     }
 
     #[test]
     fn test_get_device_mut() {
-        let mut room = Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ]);
-        if let Device::Thermometer(t) = room.get_device_mut(1) {
-            assert_eq!(t.get_temperature(), 34.);
-            return;
+        let mut room = Room::new(vec![(
+            "Teapot socket",
+            ElectricalSocket::new(220., true.into()).into(),
+        )]);
+        let socket = room.get_device_mut("Teapot socket").unwrap();
+        if let Device::ElectricalSocket(e) = socket {
+            assert_eq!(e.get_power(), 220.0);
+            e.toggle();
+            assert_eq!(e.get_power(), 0.);
+        } else {
+            unreachable!()
         }
-        unreachable!()
     }
 
     #[test]
-    #[should_panic(expected = "Device index `2` out of bounds `2`")]
     fn test_get_missing_device_mut() {
-        Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ])
-        .get_device_mut(2);
+        let mut room = Room::new(vec![]);
+        assert!(room.get_device_mut("Missing device").is_none());
     }
 
     #[test]
-    fn test_device_index_bounds() {
-        let room = Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ]);
-        room.check_device_index_bounds(1)
-    }
-
-    #[test]
-    #[should_panic(expected = "Device index `2` out of bounds `2`")]
-    fn test_device_index_bounds_panics() {
-        let room = Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ]);
-        room.check_device_index_bounds(2)
-    }
-
-    #[test]
-    fn test_room_report() {
-        Room::new([
-            Device::ElectricalSocket(ElectricalSocket::new(120., ElectricalSocketState::On)),
-            Device::Thermometer(Thermometer::new(34.0)),
-        ])
-        .report();
+    fn test_report() {
+        let room = Room::new(vec![(
+            "Unused socket",
+            ElectricalSocket::new(0., false.into()).into(),
+        )]);
+        room.report()
     }
 }

@@ -1,17 +1,36 @@
-use smart_home_lib::SmartHome;
-use smart_home_lib::{Device, ElectricalSocket, Room, Thermometer};
+use smart_home_lib::device::{ElectricalSocket, Thermometer};
+use smart_home_lib::reportable_trait::Reportable;
+use smart_home_lib::room::Room;
+use smart_home_lib::{SmartHome, SmartHomeError};
+fn main() -> Result<(), SmartHomeError> {
+    let mut home = SmartHome::new(vec![("Unused room", Room::new(vec![]))]);
 
-fn main() {
-    let socket = Device::ElectricalSocket(ElectricalSocket::new(10., true.into()));
-    let thermometer = Device::Thermometer(Thermometer::new(10.));
-    let room = Room::new([socket, thermometer]);
+    home.remove_room("Unused room")?;
+    home.add_room("Guest room", Room::new(vec![]))?;
 
-    let mut home = SmartHome::new([room]);
-    home.report();
-
-    if let Device::ElectricalSocket(s) = home.get_room_mut(0).get_device_mut(0) {
-        s.toggle()
+    if let Some(room) = home.get_room_mut("Guest room") {
+        room.add_device(
+            "First socket",
+            ElectricalSocket::new(10., true.into()).into(),
+        )?;
+        room.add_device("Main thermometer", Thermometer::new(10.).into())?;
+    }
+    report(&home);
+    if let Some(room) = home.get_room_mut("Guest room") {
+        report(room);
     }
 
-    home.report();
+    if let Ok(device) = home.get_device("Guest room", "Main thermometer") {
+        report(device);
+    }
+
+    if let Some(room) = home.get_room_mut("Guest room") {
+        room.remove_device("First socket")?;
+    }
+    home.remove_room("Guest room")?;
+    Ok(())
+}
+
+fn report(reportable: &impl Reportable) {
+    reportable.report()
 }
