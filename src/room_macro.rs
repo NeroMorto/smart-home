@@ -11,10 +11,13 @@
 /// ```
 /// use smart_home_lib::*;
 /// use smart_home_lib::device::*;
+/// use smart_home_lib::device::thermometer::Thermometer;
+/// use smart_home_lib::device::static_thermometer::StaticThermometer;
+/// use smart_home_lib::device::static_electrical_socket::StaticElectricalSocket;
 ///
 /// let room = room! {
-///     "Device 1" => Thermometer::new(32.),
-///     "Device 2" => ElectricalSocket::new(220., false.into()),
+///     "Device 1" => Thermometer::new(Box::new(StaticThermometer::new(32.))),
+///     "Device 2" => ElectricalSocket::new(Box::new(StaticElectricalSocket::new(220., false.into()))),
 /// };
 ///
 /// let device_1 = room.get_device("Device 1").unwrap();

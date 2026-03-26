@@ -53,13 +53,19 @@ impl Room {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{ElectricalSocket, Thermometer};
+    use crate::device::electrical_socket::ElectricalSocket;
+    use crate::device::static_electrical_socket::StaticElectricalSocket;
+    use crate::device::static_thermometer::StaticThermometer;
+    use crate::device::thermometer::Thermometer;
 
     #[test]
     fn test_add_device() {
         let mut room = Room::new(vec![]);
         assert_eq!(room.devices.len(), 0);
-        let _ = room.add_device("DeviceName", ElectricalSocket::new(0., false.into()).into());
+        let _ = room.add_device(
+            "DeviceName",
+            ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into()))).into(),
+        );
         assert_eq!(room.devices.len(), 1);
     }
     #[test]
@@ -67,12 +73,22 @@ mod tests {
         let mut room = Room::new(vec![
             (
                 "Unused socket",
-                ElectricalSocket::new(0., false.into()).into(),
+                ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into())))
+                    .into(),
             ),
-            ("Unused thermometer", Thermometer::new(0.).into()),
+            (
+                "Unused thermometer",
+                Thermometer::new(Box::new(StaticThermometer::new(0.))).into(),
+            ),
         ]);
         assert_eq!(room.devices.len(), 2);
-        let res = room.add_device("Unused socket", Thermometer::new(0.).into());
+        let res = room.add_device(
+            "Unused socket",
+            Thermometer::new(Box::new(
+                crate::device::static_thermometer::StaticThermometer::new(32.),
+            ))
+            .into(),
+        );
         assert_eq!(room.devices.len(), 2);
         match res.err().unwrap() {
             SmartHomeError::DeviceAlreadyExists(device_name) => {
@@ -86,7 +102,7 @@ mod tests {
     fn test_remove_device() {
         let mut room = Room::new(vec![(
             "Unused socket",
-            ElectricalSocket::new(0., false.into()).into(),
+            ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into()))).into(),
         )]);
         assert_eq!(room.devices.len(), 1);
         let _ = room.remove_device("Unused socket");
@@ -111,7 +127,7 @@ mod tests {
     fn test_get_device() {
         let room = Room::new(vec![(
             "Unused socket",
-            ElectricalSocket::new(220., true.into()).into(),
+            ElectricalSocket::new(Box::new(StaticElectricalSocket::new(220., true.into()))).into(),
         )]);
         if let Device::ElectricalSocket(socket) = room.get_device("Unused socket").unwrap() {
             assert_eq!(socket.get_power(), 220.0);
@@ -130,7 +146,7 @@ mod tests {
     fn test_get_device_mut() {
         let mut room = Room::new(vec![(
             "Teapot socket",
-            ElectricalSocket::new(220., true.into()).into(),
+            ElectricalSocket::new(Box::new(StaticElectricalSocket::new(220., true.into()))).into(),
         )]);
         let socket = room.get_device_mut("Teapot socket").unwrap();
         if let Device::ElectricalSocket(e) = socket {
@@ -152,7 +168,7 @@ mod tests {
     fn test_report() {
         let room = Room::new(vec![(
             "Unused socket",
-            ElectricalSocket::new(0., false.into()).into(),
+            ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into()))).into(),
         )]);
         room.report()
     }
