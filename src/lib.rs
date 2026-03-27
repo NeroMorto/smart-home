@@ -100,12 +100,19 @@ impl SmartHome {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{ElectricalSocket, Thermometer};
+    use crate::device::electrical_socket::ElectricalSocket;
+    use crate::device::static_electrical_socket::StaticElectricalSocket;
+    use crate::device::static_thermometer::StaticThermometer;
+    use crate::device::thermometer::Thermometer;
+
     #[test]
     fn test_get_device() {
         let home = SmartHome::new(vec![(
             "Room",
-            Room::new(vec![("Unused socket", Thermometer::new(33.).into())]),
+            Room::new(vec![(
+                "Unused socket",
+                Thermometer::new(Box::new(StaticThermometer::new(32.))).into(),
+            )]),
         )]);
         home.get_device("Room", "Unused socket").unwrap().report();
     }
@@ -186,7 +193,8 @@ mod tests {
             "Room",
             Room::new(vec![(
                 "Unused socket",
-                ElectricalSocket::new(0., false.into()).into(),
+                ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into())))
+                    .into(),
             )]),
         )]);
         assert_eq!(home.rooms.len(), 1);
@@ -212,7 +220,8 @@ mod tests {
             "Room",
             Room::new(vec![(
                 "Unused socket",
-                ElectricalSocket::new(0., false.into()).into(),
+                ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into())))
+                    .into(),
             )]),
         )]);
 

@@ -1,24 +1,16 @@
+pub trait SmartThermometer: Send + Sync + std::fmt::Debug {
+    fn get_temperature(&self) -> f32;
+}
 #[derive(Debug)]
 pub struct Thermometer {
-    pub temperature: f32,
+    pub inner: Box<dyn SmartThermometer>,
 }
 
 impl Thermometer {
-    pub fn new(temperature: f32) -> Self {
-        Self { temperature }
+    pub fn new(backend: Box<dyn SmartThermometer>) -> Self {
+        Self { inner: backend }
     }
     pub fn get_temperature(&self) -> f32 {
-        self.temperature
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::device::Thermometer;
-
-    #[test]
-    fn test_get_temperature() {
-        let thermometer = Thermometer::new(50.);
-        assert_eq!(thermometer.get_temperature(), 50.);
+        self.inner.get_temperature()
     }
 }
