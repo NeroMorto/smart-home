@@ -1,6 +1,8 @@
-use smart_home_lib::device::tcp_electrical_socket::TcpElectricalSocket;
-use smart_home_lib::device::udp_thermometer::UdpThermometer;
-use smart_home_lib::device::{Device, ElectricalSocket, thermometer::Thermometer};
+use smart_home_lib::device::Device;
+use smart_home_lib::device::smart_socket::SmartSocket;
+use smart_home_lib::device::smart_socket::backends::tcp_electrical_socket::TcpElectricalSocket;
+use smart_home_lib::device::smart_thermometer::SmartThermometer;
+use smart_home_lib::device::smart_thermometer::backends::udp_thermometer::UdpThermometer;
 use smart_home_lib::reportable_trait::Reportable;
 use smart_home_lib::room::Room;
 use smart_home_lib::{SmartHome, SmartHomeError};
@@ -8,19 +10,19 @@ use std::thread::sleep;
 use std::time::Duration;
 
 fn main() -> Result<(), SmartHomeError> {
-    let mut home = SmartHome::new(vec![("Unused room", Room::new(vec![]))]);
+    let mut home = SmartHome::new(vec![("Unused room", Room::default())]);
 
     home.remove_room("Unused room")?;
-    home.add_room("Guest room", Room::new(vec![]))?;
+    home.add_room("Guest room", Room::default())?;
 
     if let Some(room) = home.get_room_mut("Guest room") {
         room.add_device(
             "First socket",
-            ElectricalSocket::new(Box::new(TcpElectricalSocket::new("127.0.0.1:9002"))).into(),
+            SmartSocket::new(Box::new(TcpElectricalSocket::new("127.0.0.1:9002"))).into(),
         )?;
         room.add_device(
             "Main thermometer",
-            Thermometer::new(Box::new(UdpThermometer::new("127.0.0.1:9005"))).into(),
+            SmartThermometer::new(Box::new(UdpThermometer::new("127.0.0.1:9005"))).into(),
         )?;
     }
 
@@ -42,7 +44,7 @@ fn main() -> Result<(), SmartHomeError> {
         report(socket);
         match socket {
             Device::Thermometer(_) => {}
-            Device::ElectricalSocket(socket) => {
+            Device::SmartSocket(socket) => {
                 println!("===== Toggle socket =====");
                 socket.toggle();
             }
@@ -59,6 +61,6 @@ fn main() -> Result<(), SmartHomeError> {
     Ok(())
 }
 
-fn report(reportable: &impl Reportable) {
+fn report(reportable: &impl Reportable) -> String {
     reportable.report()
 }

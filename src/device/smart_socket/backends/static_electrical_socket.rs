@@ -1,5 +1,4 @@
-use crate::device::electrical_socket::SmartSocket;
-use crate::device::socket_state::ElectricalSocketState;
+use crate::device::smart_socket::{SocketBackend, socket_state::ElectricalSocketState};
 
 #[derive(Debug)]
 pub struct StaticElectricalSocket {
@@ -16,7 +15,7 @@ impl StaticElectricalSocket {
     }
 }
 
-impl SmartSocket for StaticElectricalSocket {
+impl SocketBackend for StaticElectricalSocket {
     fn toggle(&mut self) {
         match self.state {
             ElectricalSocketState::Off => self.state = ElectricalSocketState::On,
@@ -34,9 +33,9 @@ impl SmartSocket for StaticElectricalSocket {
 
 #[cfg(test)]
 mod tests {
-    use crate::device::electrical_socket::*;
-    use crate::device::socket_state::ElectricalSocketState;
-    use crate::device::static_electrical_socket::StaticElectricalSocket;
+    use crate::device::smart_socket::backends::static_electrical_socket::StaticElectricalSocket;
+    use crate::device::smart_socket::socket_state::ElectricalSocketState;
+    use crate::device::smart_socket::*;
 
     #[test]
     fn test_get_state() {

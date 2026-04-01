@@ -1,9 +1,10 @@
-use smart_home_lib::device::udp_thermometer::TemperatureTelemetry;
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::path::Path;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+use smart_home_lib::device::smart_thermometer::backends::udp_thermometer::TemperatureTelemetry;
 
 struct ThermometerState {
     temperature: f32,

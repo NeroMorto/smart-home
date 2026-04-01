@@ -1,4 +1,4 @@
-use crate::device::thermometer::SmartThermometer;
+use crate::device::smart_thermometer::ThermometerBackend;
 use std::io::ErrorKind;
 use std::net::UdpSocket;
 use std::sync::atomic::AtomicBool;
@@ -14,7 +14,7 @@ pub struct UdpThermometer {
     subscriber_handle: Option<JoinHandle<()>>,
 }
 
-impl SmartThermometer for UdpThermometer {
+impl ThermometerBackend for UdpThermometer {
     fn get_temperature(&self) -> f32 {
         match self.temperature.read() {
             Ok(temperature) => *temperature,
