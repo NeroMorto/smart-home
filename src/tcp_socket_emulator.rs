@@ -1,7 +1,7 @@
-use smart_home_lib::device::socket_state::ElectricalSocketState;
-use smart_home_lib::device::tcp_electrical_socket::{
+use smart_home_lib::device::smart_socket::backends::tcp_electrical_socket::{
     Command, CommandEncoder, GetPowerCmd, ToggleCmd,
 };
+use smart_home_lib::device::smart_socket::socket_state::ElectricalSocketState;
 use std::io::{ErrorKind, Read};
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
@@ -109,8 +109,11 @@ fn main() {
 
 #[cfg(test)]
 mod integration_tests {
+    use smart_home_lib::device::smart_socket::backends::tcp_electrical_socket::{
+        CommandEncoder, TcpElectricalSocket,
+    };
+
     use super::*;
-    use smart_home_lib::device::tcp_electrical_socket::TcpElectricalSocket;
     use std::net::TcpStream;
     use std::thread;
     use std::time::Duration;

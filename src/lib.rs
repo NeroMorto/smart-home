@@ -5,25 +5,40 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
 pub mod device;
+pub mod home_builder;
+pub mod report_composer;
 pub mod reportable_trait;
 pub mod room;
 mod room_macro;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct SmartHome {
     rooms: HashMap<String, Room>,
 }
 
 impl Reportable for SmartHome {
-    fn report(&self) {
-        println!(
+    fn report(&self) -> String {
+        let mut home_report = format!(
             "{} Smart Home: room count = {} {}",
             "=".repeat(5),
             self.rooms.len(),
             "=".repeat(5)
         );
-        self.rooms.values().for_each(|room| room.report());
-        println!("{} Report end {}", "=".repeat(10), "=".repeat(10));
+        home_report.extend(
+            self.rooms
+                .iter()
+                .map(|(room_name, room)| format!("[{room_name} | {}]", room.report())),
+        );
+        self.rooms.values().for_each(|room| {
+            // room_report = room_report.extend("c".into());
+            room.report();
+        });
+        format!(
+            "{home_report}
+            \n{} Report end {}",
+            "=".repeat(10),
+            "=".repeat(10)
+        )
     }
 }
 
@@ -50,7 +65,11 @@ impl Display for SmartHomeError {
 impl std::error::Error for SmartHomeError {}
 
 impl SmartHome {
-    pub fn new(rooms: Vec<(&str, Room)>) -> Self {
+    pub fn new<I, S>(rooms: I) -> Self
+    where
+        I: IntoIterator<Item = (S, Room)>,
+        S: Into<String>,
+    {
         Self {
             rooms: HashMap::from_iter(
                 rooms
@@ -100,10 +119,10 @@ impl SmartHome {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::electrical_socket::ElectricalSocket;
-    use crate::device::static_electrical_socket::StaticElectricalSocket;
-    use crate::device::static_thermometer::StaticThermometer;
-    use crate::device::thermometer::Thermometer;
+    use crate::device::smart_socket::SmartSocket;
+    use crate::device::smart_socket::backends::static_electrical_socket::StaticElectricalSocket;
+    use crate::device::smart_thermometer::SmartThermometer;
+    use crate::device::smart_thermometer::backends::static_thermometer::StaticThermometer;
 
     #[test]
     fn test_get_device() {
@@ -111,7 +130,7 @@ mod tests {
             "Room",
             Room::new(vec![(
                 "Unused socket",
-                Thermometer::new(Box::new(StaticThermometer::new(32.))).into(),
+                SmartThermometer::new(Box::new(StaticThermometer::new(32.))).into(),
             )]),
         )]);
         home.get_device("Room", "Unused socket").unwrap().report();
@@ -119,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_get_device_from_missing_room() {
-        let home = SmartHome::new(vec![]);
+        let home = SmartHome::default();
         match home.get_device("Bathroom", "Some device").err().unwrap() {
             SmartHomeError::RoomNotFound(room_name) => {
                 assert_eq!(room_name, "Bathroom")
@@ -130,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_get_missing_device() {
-        let home = SmartHome::new(vec![("Bathroom", Room::new(vec![]))]);
+        let home = SmartHome::new(vec![("Bathroom", Room::default())]);
         match home.get_device("Bathroom", "Some device").err().unwrap() {
             SmartHomeError::DeviceNotFound(room_name) => {
                 assert_eq!(room_name, "Some device")
@@ -141,34 +160,34 @@ mod tests {
 
     #[test]
     fn test_get_room() {
-        let home = SmartHome::new(vec![("Room", Room::new(vec![]))]);
+        let home = SmartHome::new(vec![("Room", Room::default())]);
         let _ = home.get_room("Room").unwrap();
     }
 
     #[test]
     fn test_get_missing_room() {
-        let home = SmartHome::new(vec![]);
+        let home = SmartHome::default();
         assert!(home.get_room("Missing room").is_none());
     }
 
     #[test]
     fn test_get_room_mut() {
-        let mut home = SmartHome::new(vec![("Kitchen", Room::new(vec![]))]);
+        let mut home = SmartHome::new(vec![("Kitchen", Room::default())]);
         let _ = home.get_room_mut("Kitchen").unwrap();
     }
     #[test]
     fn test_get_missing_room_mut() {
-        let mut home = SmartHome::new(vec![]);
+        let mut home = SmartHome::default();
         assert!(home.get_room_mut("Missing room").is_none());
     }
 
     #[test]
     fn test_add_room() {
-        let mut home = SmartHome::new(vec![]);
+        let mut home = SmartHome::default();
         assert_eq!(home.rooms.len(), 0);
-        let _ = home.add_room("Room", Room::new(vec![]));
+        let _ = home.add_room("Room", Room::default());
         assert_eq!(home.rooms.len(), 1);
-        let err = home.add_room("Room", Room::new(vec![])).err().unwrap();
+        let err = home.add_room("Room", Room::default()).err().unwrap();
         match err {
             SmartHomeError::RoomAlreadyExists(_) => {}
             _ => unreachable!("Unexpected error"),
@@ -177,8 +196,8 @@ mod tests {
 
     #[test]
     fn test_add_room_which_already_exists() {
-        let mut home = SmartHome::new(vec![("Room", Room::new(vec![]))]);
-        let res = home.add_room("Room", Room::new(vec![]));
+        let mut home = SmartHome::new(vec![("Room", Room::default())]);
+        let res = home.add_room("Room", Room::default());
         match res.err().unwrap() {
             SmartHomeError::RoomAlreadyExists(room_name) => {
                 assert_eq!(room_name, "Room")
@@ -193,8 +212,7 @@ mod tests {
             "Room",
             Room::new(vec![(
                 "Unused socket",
-                ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into())))
-                    .into(),
+                SmartSocket::new(Box::new(StaticElectricalSocket::new(0., false.into()))).into(),
             )]),
         )]);
         assert_eq!(home.rooms.len(), 1);
@@ -204,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_remove_room_which_does_not_exist() {
-        let res = SmartHome::new(vec![]).remove_room("Missing bathroom");
+        let res = SmartHome::default().remove_room("Missing bathroom");
 
         match res.err().unwrap() {
             SmartHomeError::RoomNotFound(room_name) => {
@@ -220,8 +238,7 @@ mod tests {
             "Room",
             Room::new(vec![(
                 "Unused socket",
-                ElectricalSocket::new(Box::new(StaticElectricalSocket::new(0., false.into())))
-                    .into(),
+                SmartSocket::new(Box::new(StaticElectricalSocket::new(0., false.into()))).into(),
             )]),
         )]);
 

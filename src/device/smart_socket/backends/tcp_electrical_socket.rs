@@ -1,4 +1,4 @@
-use crate::device::electrical_socket::SmartSocket;
+use crate::device::smart_socket::SocketBackend;
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::{Error, ErrorKind, Read, Write};
@@ -23,7 +23,7 @@ impl TcpElectricalSocket {
     }
 }
 
-impl SmartSocket for TcpElectricalSocket {
+impl SocketBackend for TcpElectricalSocket {
     fn toggle(&mut self) {
         let mut stream = TcpStream::connect(&self.address).unwrap();
         let _ = TcpElectricalSocket::send_command(ToggleCmd {}, &mut stream);

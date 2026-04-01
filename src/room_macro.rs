@@ -11,27 +11,32 @@
 /// ```
 /// use smart_home_lib::*;
 /// use smart_home_lib::device::*;
-/// use smart_home_lib::device::thermometer::Thermometer;
-/// use smart_home_lib::device::static_thermometer::StaticThermometer;
-/// use smart_home_lib::device::static_electrical_socket::StaticElectricalSocket;
+/// use smart_home_lib::device::smart_thermometer::SmartThermometer;
+/// use smart_home_lib::device::smart_socket::SmartSocket;
+/// use smart_home_lib::device::smart_thermometer::backends::static_thermometer::StaticThermometer;
+/// use smart_home_lib::device::smart_socket::backends::static_electrical_socket::StaticElectricalSocket;
 ///
 /// let room = room! {
-///     "Device 1" => Thermometer::new(Box::new(StaticThermometer::new(32.))),
-///     "Device 2" => ElectricalSocket::new(Box::new(StaticElectricalSocket::new(220., false.into()))),
+///     "Device 1" => SmartThermometer::new(Box::new(StaticThermometer::new(32.))),
+///     "Device 2" => SmartSocket::new(Box::new(StaticElectricalSocket::new(220., false.into()))),
 /// };
 ///
 /// let device_1 = room.get_device("Device 1").unwrap();
 /// assert!(matches!(device_1, Device::Thermometer(_)));
 ///
 /// let device_2 = room.get_device("Device 2").unwrap();
-/// assert!(matches!(device_2, Device::ElectricalSocket(_)));
+/// assert!(matches!(device_2, Device::SmartSocket(_)));
 /// ```
 ///
 #[macro_export]
 macro_rules! room {
+    {} => {
+        $crate::room::Room::default()
+    };
+
     { $( $device_name:expr => $device:expr ), * $(,)? } => {
         {
-            $crate::room::Room::new(vec![$(($device_name, Device::from($device))), *])
+            $crate::room::Room::new(vec![$( ($device_name, $crate::device::Device::from($device)) ), *])
         }
     }
 }
