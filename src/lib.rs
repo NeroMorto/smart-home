@@ -60,6 +60,11 @@ impl SmartHome {
             ),
         }
     }
+
+    pub fn get_rooms(&self) -> &HashMap<String, Room> {
+        &self.rooms
+    }
+
     pub fn get_room(&self, name: &str) -> Option<&Room> {
         self.rooms.get(name)
     }
@@ -73,6 +78,16 @@ impl SmartHome {
         }
         self.rooms.insert(name.into(), room);
         Ok(())
+    }
+
+    pub fn delete_room(&mut self, name: &str) -> Result<(), SmartHomeError> {
+        match self.get_room(name) {
+            Some(_) => {
+                self.rooms.remove(name);
+                Ok(())
+            }
+            _ => Err(SmartHomeError::RoomNotFound(name.into())),
+        }
     }
 
     pub fn get_device(
