@@ -26,6 +26,10 @@ impl Room {
         }
     }
 
+    pub fn devices(&self) -> &HashMap<String, Device> {
+        &self.devices
+    }
+
     pub fn add_device(&mut self, device_name: &str, device: Device) -> Result<(), SmartHomeError> {
         if self.devices.contains_key(device_name) {
             return Err(SmartHomeError::DeviceAlreadyExists(device_name.into()));
